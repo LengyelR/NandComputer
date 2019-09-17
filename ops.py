@@ -96,6 +96,32 @@ class FullAdd16Bit(gate.Device):
         return self.res
 
 
+class Increment2bit(gate.Device):
+    def __init__(self):
+        self.xs = None
+
+        self.half_add = HalfAdd()
+        self.full_add = FullAdd()
+        self.res = []
+
+    def _wiring(self):
+        res = []
+        lsb, carry = self.half_add(self.xs[1], 1)
+        res.insert(0, lsb)
+        digit, _ = self.full_add(self.xs[0], 0, carry)
+        res.insert(0, digit)
+        return res
+
+    def step(self):
+        res = self._wiring()
+        self.res = res
+
+    def __call__(self, xs):
+        self.xs = xs
+        self.step()
+        return self.res
+
+
 class Increment16bit(gate.Device):
     def __init__(self):
         self.xs = None
@@ -173,6 +199,17 @@ def main():
     print(ci.device.res)
 
     ci.power_off()
+
+    print('-'*48)
+    c = board.Circuit(4, Increment16bit)
+    c.power_on()
+
+    x = [1]*14 + [0, 0]
+    for _ in range(10):
+        print(x)
+        c.device(x)
+        x = c.device.res
+    c.power_off()
 
 
 if __name__ == '__main__':
