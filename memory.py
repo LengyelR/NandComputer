@@ -53,19 +53,48 @@ class Register(gate.Device):
         self.step()
         return self.res
 
+    def __getitem__(self, idx):
+        return self.latches[idx].res
+
+
+class EightBit(Register):
+    def __init__(self):
+        super().__init__(8)
+
 
 class SixteenBit(Register):
     def __init__(self):
         super().__init__(16)
 
 
+class Memory(gate.Device):
+    def __init__(self, k):
+        self.memory = [SixteenBit() for _ in range(k*1024)]
+        self.data = [0]*16
+        self.write = 0
+        self.res = self.memory[0].res
+
+    def _wiring(self):
+        res = self.memory[self.address](self.data, self.write)
+        return res
+
+    def step(self):
+        res = self._wiring()
+        self.res = res
+
+    def __call__(self, address):
+        self.address = address
+        self.step()
+        return self.res
+
+
 def flip_flop_test():
     import time
     circuit = board.Circuit(16, GatedLatch)
     circuit.power_on()
-    time.sleep(0.5)
+    time.sleep(0.25)
 
-    def toggling_big_while_set_is_off():
+    def toggling_bit_while_set_is_off():
         circuit.device.set_bit = 1
         circuit.device.bit = 1
         circuit.device.set_bit = 0
@@ -122,7 +151,7 @@ def flip_flop_test():
             time.sleep(0.25)
             assert circuit.device.res == 0
 
-    toggling_big_while_set_is_off()
+    toggling_bit_while_set_is_off()
     toggling_bit_while_set_is_on()
     toggling_set_while_bit_is_off()
     toggling_set_while_bit_is_on()

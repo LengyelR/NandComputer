@@ -1,7 +1,5 @@
 import threading
 import time
-import alu
-import memory
 
 
 class Circuit:
@@ -28,10 +26,3 @@ class Circuit:
     def power_off(self):
         self.is_on = False
         self.thread.join()
-
-
-class CPU:
-    def __init__(self):
-        self.alu = alu.ALU()
-        self.rom = memory.RAM()
-        self.ram = memory.RAM()
