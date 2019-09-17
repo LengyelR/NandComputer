@@ -22,29 +22,28 @@ class ALU(gate.Device):
         self.adder = ops.FullAdd16Bit()
         self.is_negative = ops.IsNegative()
 
+        self.mux2_zx = gate.Multiplexer2()
+        self.mux2_nx = gate.Multiplexer2()
+
+        self.mux2_zy = gate.Multiplexer2()
+        self.mux2_ny = gate.Multiplexer2()
+
+        self.mux2_add = gate.Multiplexer2()
+        self.mux2_negate = gate.Multiplexer2()
+
     def _wiring(self):
-        self.temp_xs = self.xs
-        self.temp_ys = self.ys
+        xs = self.mux2_zx(self.xs, [0]*16, self.flags.zx)
+        ys = self.mux2_zy(self.ys, [0]*16, self.flags.zy)
 
-        if self.flags.zx:
-            self.temp_xs = [0] * 16
-        if self.flags.nx:
-            self.temp_xs = self.twos_complements[0](self.temp_xs)
+        xs = self.mux2_nx(xs, self.twos_complements[0](xs), self.flags.zx)
+        ys = self.mux2_ny(ys, self.twos_complements[1](ys), self.flags.ny)
 
-        if self.flags.zy:
-            self.temp_ys = [0] * 16
-        if self.flags.ny:
-            self.temp_ys = self.twos_complements[1](self.temp_ys)
+        add_ = self.adder(xs, ys)
+        and_ = self.bitwise_and(xs, ys)
 
-        if self.flags.f:
-            op = self.adder
-        else:
-            op = self.bitwise_and
+        res = self.mux2_add(and_, add_, self.flags.f)
 
-        res = op(self.temp_xs, self.temp_ys)
-
-        if self.flags.no:
-            res = self.twos_complements[2](res)
+        self.mux2_negate(res, self.twos_complements[2](res), self.flags.no)
 
         return res, self.is_zero(res), self.is_negative(res)
 
@@ -64,14 +63,8 @@ class ALU(gate.Device):
 if __name__ == '__main__':
     import board
 
-    x = [0, 0, 0, 0,
-         1, 0, 1, 1,
-         0, 1, 1, 1,
-         0, 1, 0, 0]
-    y = [0, 0, 0, 1,
-         0, 0, 1, 0,
-         0, 1, 1, 1,
-         0, 0, 1, 1]
+    x = [0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0]
+    y = [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1]
 
     alu_flags = AluFlag(0, 0, 0, 0, 1, 0)
     c = board.Circuit(4, ALU)
