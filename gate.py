@@ -8,9 +8,9 @@ class Device:
 
 
 class SimpleGate1(Device):
-    def __init__(self):
-        self.x = None
-        self.res = None
+    def __init__(self, x=None, res=None):
+        self.x = x
+        self.res = res
 
     @abc.abstractmethod
     def _wiring(self):
@@ -134,10 +134,34 @@ class Nor(SimpleGate2):
         return self.not_(self.or_(self.x, self.y))
 
 
+class RightShift(SimpleGate1):
+    def __init__(self, width=16):
+        super().__init__([0] * width, [0] * width)
+        self.width = width
+
+    def _wiring(self):
+        res = [None] * self.width
+        for idx in range(self.width):
+            res[(idx + 1) % self.width] = self.x[idx]
+        return res
+
+
+class LeftShift(SimpleGate1):
+    def __init__(self, width=16):
+        super().__init__([0] * width, [0] * width)
+        self.width = width
+
+    def _wiring(self):
+        res = [None] * self.width
+        for idx in range(self.width):
+            res[idx] = self.x[(idx + 1) % self.width]
+        return res
+
+
 class BitwiseOp(SimpleGate2):
-    def __init__(self, op_gate):
+    def __init__(self, op_gate, width=16):
         super().__init__()
-        self.width = 16
+        self.width = width
         self.ops = [op_gate() for _ in range(self.width)]
 
     def _wiring(self):
@@ -150,7 +174,7 @@ class BitwiseOp(SimpleGate2):
         return res
 
 
-class Multiplexer(Device):
+class OneBitMultiplexer(Device):
     def __init__(self):
         self.x = 0
         self.y = 0
@@ -179,15 +203,15 @@ class Multiplexer(Device):
         return self.res
 
 
-class EightBitMultiplexer2(Device):
-    def __init__(self):
+class Multiplexer2(Device):
+    def __init__(self, width=16):
+        self.width = width
         self.xs = []
         self.ys = []
-        self.selector = 0  # 0 or 1
+        self.selector = 0
         self.res = []
 
-        self.width = 8
-        self.multiplexers = [Multiplexer() for _ in range(self.width)]
+        self.multiplexers = [OneBitMultiplexer() for _ in range(self.width)]
 
     def _wiring(self):
         res = []
@@ -208,8 +232,9 @@ class EightBitMultiplexer2(Device):
         return self.res
 
 
-class EightBitMultiplexer4(Device):
-    def __init__(self):
+class Multiplexer4(Device):
+    def __init__(self, width=16):
+        self.width = width
         self.xs = []
         self.ys = []
         self.zs = []
@@ -218,10 +243,9 @@ class EightBitMultiplexer4(Device):
         self.selector1 = 0  # second bit
         self.res = []
 
-        self.width = 8
-        self.mux0 = EightBitMultiplexer2()
-        self.mux1 = EightBitMultiplexer2()
-        self.mux2 = EightBitMultiplexer2()
+        self.mux0 = Multiplexer2(width)
+        self.mux1 = Multiplexer2(width)
+        self.mux2 = Multiplexer2(width)
 
     def _wiring(self):
         res = []
@@ -273,21 +297,16 @@ class FeedingLoop(Device):
 if __name__ == '__main__':
     import board
     import time
+
     f = lambda: time.sleep(0.25)
 
-    c = board.Circuit(100, Multiplexer)
+    c = board.Circuit(100, RightShift, 4)
     c.power_on()
     f()
-    c.device(0, 0, 0)
+    c.device([0, 0, 0, 1])
     f()
     print(c.device.res)
-    c.device(0, 1, 0)
-    f()
-    print(c.device.res)
-    c.device(0, 1, 1)
-    f()
-    print(c.device.res)
-    c.device(1, 1, 0)
+    c.device([1, 0, 0, 0])
     f()
     print(c.device.res)
     c.power_off()
