@@ -1,6 +1,7 @@
 import gate
 import board
 import latch
+import utils
 
 
 class GatedLatch(gate.Device):
@@ -28,15 +29,15 @@ class GatedLatch(gate.Device):
         self.set_bit = set_bit
         self.step()
 
-        return self.bit
+        return self.res
 
 
 class Register(gate.Device):
     def __init__(self, width):
         self.width = width
-        self.bits = []
+        self.bits = [0]*width
         self.set_bits = 0
-        self.res = None
+        self.res = [0]*width
 
         self.latches = [GatedLatch() for _ in range(self.width)]
 
@@ -68,22 +69,46 @@ class SixteenBit(Register):
 
 
 class Memory(gate.Device):
-    def __init__(self, k):
-        self.memory = [SixteenBit() for _ in range(k*1024)]
+    def __init__(self, address_space=15):
+        self.memory = [SixteenBit() for _ in range(2**address_space)]
+        self.address = [0]*address_space
         self.data = [0]*16
         self.write = 0
         self.res = self.memory[0].res
 
     def _wiring(self):
-        res = self.memory[self.address](self.data, self.write)
+        idx = utils.to_integer(self.address)
+        res = self.memory[idx](self.data, self.write)
         return res
 
     def step(self):
         res = self._wiring()
         self.res = res
 
+
+class ROM(Memory):
+    def __init__(self, burn):
+        super().__init__()
+        if len(burn) != len(self.memory):
+            raise ValueError
+
+        for address, data in zip(self.memory, burn):
+            address(data, 1)
+
     def __call__(self, address):
         self.address = address
+        self.step()
+        return self.res
+
+
+class RAM(Memory):
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, address, data, write_enable):
+        self.address = address
+        self.data = data
+        self.write = write_enable
         self.step()
         return self.res
 
@@ -159,5 +184,24 @@ def flip_flop_test():
     circuit.power_off()
 
 
+def _burn_test():
+    import time
+
+    data = [[0]*16]*2**15
+    data[0] = [0, 1]*8
+    data[1] = [1, 0]*8
+    data[2] = [1]*16
+
+    c = board.Circuit(1024, ROM, data)
+    c.power_on()
+    time.sleep(0.25)
+    for i in range(5):
+        m = utils.to_machine_number(i)
+        res = c.device(m)
+        print(res)
+    c.power_off()
+
+
 if __name__ == '__main__':
     flip_flop_test()
+    _burn_test()
