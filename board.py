@@ -12,13 +12,15 @@ class Circuit:
         self.thread = None
         self.is_on = False
 
-    def power_on(self):
+    def power_on(self, show_step=False):
         self.is_on = True
 
         def _loop():
             while self.is_on:
                 time.sleep(1 / self.clock_speed)
                 self.device.step()
+                if show_step:
+                    print(self.device.res)
 
         self.thread = threading.Thread(target=_loop)
         self.thread.start()
