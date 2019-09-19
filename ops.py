@@ -147,11 +147,11 @@ class TWosComplement(gate.SimpleGate1):
     def __init__(self):
         super().__init__()
         self.full_16bit_adder = FullAdd16Bit()
-        self.not_ = [gate.Not() for _ in range(16)]
+        self.not_ = gate.BitwiseOp1(gate.Not)
 
     def _wiring(self):
         one = [0]*15 + [1]
-        inverted = [self.not_[idx](self.x[idx]) for idx in range(len(self.x))]
+        inverted = self.not_(self.x)
         res = self.full_16bit_adder(inverted, one)
         return res
 
