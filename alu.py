@@ -15,9 +15,9 @@ class ALU(gate.Device):
         self.temp_ys = None
         self.res = (None, None, None)
 
-        self.bitwise_and = gate.BitwiseOp(gate.And)
+        self.bitwise_and = gate.BitwiseOp2(gate.And)
 
-        self.twos_complements = [ops.TWosComplement() for _ in range(3)]
+        self.inverters = [gate.BitwiseOp1(gate.Not) for _ in range(3)]
         self.is_zero = ops.IsZero()
         self.adder = ops.FullAdd16Bit()
         self.is_negative = ops.IsNegative()
@@ -33,17 +33,17 @@ class ALU(gate.Device):
 
     def _wiring(self):
         xs = self.mux2_zx(self.xs, [0]*16, self.flags.zx)
-        ys = self.mux2_zy(self.ys, [0]*16, self.flags.zy)
+        xs = self.mux2_nx(xs, self.inverters[0](xs), self.flags.nx)
 
-        xs = self.mux2_nx(xs, self.twos_complements[0](xs), self.flags.zx)
-        ys = self.mux2_ny(ys, self.twos_complements[1](ys), self.flags.ny)
+        ys = self.mux2_zy(self.ys, [0]*16, self.flags.zy)
+        ys = self.mux2_ny(ys, self.inverters[1](ys), self.flags.ny)
 
         add_ = self.adder(xs, ys)
         and_ = self.bitwise_and(xs, ys)
 
         res = self.mux2_add(and_, add_, self.flags.f)
 
-        self.mux2_negate(res, self.twos_complements[2](res), self.flags.no)
+        res = self.mux2_negate(res, self.inverters[2](res), self.flags.no)
 
         return res, self.is_zero(res), self.is_negative(res)
 
@@ -60,20 +60,65 @@ class ALU(gate.Device):
         return self.res
 
 
-if __name__ == '__main__':
+def test_alu():
     import board
+    import utils
 
-    x = [0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0]
-    y = [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1]
+    zero_flag      = AluFlag(1, 0, 1, 0, 1, 0)
+    one_flag       = AluFlag(1, 1, 1, 1, 1, 1)
+    minus1_flag    = AluFlag(1, 1, 1, 0, 1, 0)
+    x_flag         = AluFlag(0, 0, 1, 1, 0, 0)
+    not_x_flag     = AluFlag(0, 0, 1, 1, 0, 1)
+    minus_x_flag   = AluFlag(0, 0, 1, 1, 1, 1)
+    y_flag         = AluFlag(1, 1, 0, 0, 0, 0)
+    not_y_flag     = AluFlag(1, 1, 0, 0, 0, 1)
+    minus_y_flag   = AluFlag(1, 1, 0, 0, 1, 1)
+    x_plus_1_flag  = AluFlag(0, 1, 1, 1, 1, 1)
+    y_plus_1_flag  = AluFlag(1, 1, 0, 1, 1, 1)
+    x_minus_1_flag = AluFlag(0, 0, 1, 1, 1, 0)
+    y_minus_1_flag = AluFlag(1, 1, 0, 0, 1, 0)
+    x_plus_y_flag  = AluFlag(0, 0, 0, 0, 1, 0)
+    x_minus_y_flag = AluFlag(0, 1, 0, 0, 1, 1)
+    y_minus_x_flag = AluFlag(0, 0, 0, 1, 1, 1)
+    x_and_y_flag   = AluFlag(0, 0, 0, 0, 0, 0)
+    x_or_y_flag    = AluFlag(0, 1, 0, 1, 0, 1)
 
-    alu_flags = AluFlag(0, 0, 0, 0, 1, 0)
     c = board.Circuit(4, ALU)
-    c.power_on()
-    print(c.device.res)
-    print(x)
-    print(y)
-    c.device(x, y, alu_flags)
-    r = c.device.res
-    print(r[0])
-    print(r[1], r[2])
-    c.power_off()
+
+    def _assert(r, flag):
+        x1 = utils.to_machine_number(x)
+        y1 = utils.to_machine_number(y)
+
+        res, is_zero, is_negative = c.device(x1, y1, flag)
+        assert utils.to_integer(res) == r
+        assert is_zero == (1 if r == 0 else 0)
+        assert is_negative == (1 if r < 0 else 0)
+
+    data = [(67, 49), (32, 75), (5123, 7546), (2**14-17, 2**13+6), (0, 0), (0, 1), (1, 1)]
+
+    for x, y in data:
+        _assert(0, zero_flag)
+        _assert(1, one_flag)
+        _assert(-1, minus1_flag)
+
+        _assert(x, x_flag)
+        _assert(y, y_flag)
+        _assert(-y, minus_y_flag)
+        _assert(-x, minus_x_flag)
+        _assert(-x-1, not_x_flag)
+        _assert(-y-1, not_y_flag)
+
+        _assert(x+1, x_plus_1_flag)
+        _assert(y+1, y_plus_1_flag)
+        _assert(x-1, x_minus_1_flag)
+        _assert(y-1, y_minus_1_flag)
+        _assert(x+y, x_plus_y_flag)
+        _assert(x-y, x_minus_y_flag)
+        _assert(y-x, y_minus_x_flag)
+
+        _assert(x & y, x_and_y_flag)
+        _assert(x | y, x_or_y_flag)
+
+
+if __name__ == '__main__':
+    test_alu()
