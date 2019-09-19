@@ -158,7 +158,20 @@ class LeftShift(SimpleGate1):
         return res
 
 
-class BitwiseOp(SimpleGate2):
+class BitwiseOp1(SimpleGate1):
+    def __init__(self, op_gate, width=16):
+        super().__init__()
+        self.width = width
+        self.ops = [op_gate() for _ in range(self.width)]
+
+    def _wiring(self):
+        res = []
+        for idx in range(self.width):
+            res.append(self.ops[idx](self.x[idx]))
+        return res
+
+
+class BitwiseOp2(SimpleGate2):
     def __init__(self, op_gate, width=16):
         super().__init__()
         self.width = width
