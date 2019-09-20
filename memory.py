@@ -89,7 +89,7 @@ class Memory(gate.Device):
 class ROM(Memory):
     def __init__(self, burn):
         super().__init__()
-        if len(burn) != len(self.memory):
+        if len(burn) > len(self.memory):
             raise ValueError
 
         for address, data in zip(self.memory, burn):
