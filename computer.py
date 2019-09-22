@@ -120,3 +120,68 @@ class Computer(gate.Device):
         self.step()
         next_instruction = self.ROM(self.pc_bus)
         return self.pc_bus, next_instruction
+
+
+def program_test():
+    import utils
+
+    def show_memory():
+        for address in range(16, 20):
+            memory_val = computer.RAM.memory[address]
+            decimal = utils.to_integer(memory_val.res)
+            print(address, memory_val, decimal)
+
+    two_plus_two_minus_one = [
+        0b0000000000000010,  # @2        --> A = 2
+        0b1110110000010000,  # D = A     --> D = 2
+        0b1111001110010000,  # D = D + A --> D += 2
+        0b1110000010010000,  # D = D - 1 --> D--
+        0b0000000000000000,  # @0        --> A = 0
+        0b1110001100001000,  # M = D     --> M[0] = 3
+    ]
+    sum100 = [
+        0b0000000000010000,  # 0   @i        --> A = 16
+        0b1110111111001000,  # 1   M = 1     --> M[16] = 1    --> var i = 1
+        0b0000000000010001,  # 2   @sum      --> A = 17
+        0b1110101010001000,  # 3   M = 0     --> M[17] = 0    --> var sum = 0
+        0b0000000000010000,  # 4   @i        --> A = 16
+        0b1111110000010000,  # 5   D = M     --> D = M[16]    --> D = i
+        0b0000000001100100,  # 6   @100      --> A = 100
+        0b1110010011010000,  # 7   D = D - A --> D = D - 100  --> D = i - 100
+        0b0000000000010010,  # 8   @END      --> A = 18
+        0b1110001100000001,  # 9   D;JGT     --> IF D > 0 THEN GOTO 18
+        0b0000000000010000,  # 10  @i        --> A = 16
+        0b1111110000010000,  # 11  D = M     --> D = M[16]          --> D = i
+        0b0000000000010001,  # 14  @sum      --> A = 17
+        0b1111000010001000,  # 13  M = D + M --> M[17] = M[17] + D  --> sum += i
+        0b0000000000010000,  # 14  @i        --> A = 16
+        0b1111110111001000,  # 15  M = M + 1 --> M[16] = M[16] + 1  --> i++
+        0b0000000000000100,  # 16  @LOOP     --> A = 4
+        0b1110101010000111,  # 17  0;JMP     --> GOTO 4
+        0b0000000000010010,  # 18  @END      --> A = 18
+        0b1110101010000111,  # 19  0;JMP     --> GOTO 18
+    ]
+
+    image = utils.create_image(sum100)
+    computer = Computer(image)
+    next_address, next_ir = computer()
+
+    for _ in range(2000):
+        # instruction to be executed
+        i = utils.to_integer(next_address)
+        decoded = utils.decode_ir(next_ir)
+        print('line no', i)
+        print(decoded)
+
+        # execute
+        next_address, next_ir = computer()
+
+        # show registers, ram
+        print('A', utils.to_integer(computer.CPU.A.res), computer.CPU.A.res)
+        print('D', utils.to_integer(computer.CPU.D.res), computer.CPU.D.res)
+        show_memory()
+        print('-'*48)
+
+
+if __name__ == '__main__':
+    program_test()
