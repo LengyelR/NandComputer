@@ -41,9 +41,9 @@ class CPU(gate.Device):
 
         # todo: remove if-else branch
         if address_compute_bit == 0:
-            self.A(self.instruction, 1)
+            self.A(self.instruction, 1)  # first bit is 0, safe to pass 16 bits to register
             pc = self.PC(inc_bit=1, write_bit=0, new_address=self.A.res, reset=0)
-            return 0, [0]*16, [0]*16, pc
+            return 0, [0]*16, self.A.res, pc
         else:
             am_bit = self.instruction[3]
             alu_bits = self.instruction[4:10]
@@ -107,11 +107,10 @@ class Computer(gate.Device):
 
     def _wiring(self):
         instruction = self.ROM(self.pc_bus)
-        # todo: wire memory in a better way ...
-        mem = self.RAM(self.CPU.A.res, [0]*16, 0)
-        write_bit, data, address, pc = self.CPU(instruction, mem, self.reset)
+        write_bit, data, address, pc = self.CPU(instruction, self.memory_bus, self.reset)
         self.RAM(address, data, write_bit)
         self.pc_bus = pc
+        self.memory_bus = self.RAM(address, data, 0)
 
     def step(self):
         self._wiring()
