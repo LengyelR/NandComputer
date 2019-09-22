@@ -47,7 +47,7 @@ class ProgramCounter(gate.Device):
         res = self._wiring()
         self.res = res
 
-    def __call__(self, new_address, inc_bit, write_bit, reset):
+    def __call__(self, inc_bit, write_bit, new_address, reset):
         self.input = new_address
         self.write_bit = write_bit
         self.inc_bit = inc_bit
