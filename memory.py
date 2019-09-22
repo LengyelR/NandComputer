@@ -7,8 +7,8 @@ import utils
 class GatedLatch(gate.Device):
     def __init__(self):
         self.bit = 0
-        self.set_bit = 0
-        self.res = None
+        self.set_bit = 1
+        self.res = 0
 
         self.nand0 = gate.Nand()
         self.nand1 = gate.Nand()
@@ -36,7 +36,7 @@ class Register(gate.Device):
     def __init__(self, width):
         self.width = width
         self.bits = [0]*width
-        self.set_bits = 0
+        self.set_bits = 1
         self.res = [0]*width
 
         self.latches = [GatedLatch() for _ in range(self.width)]
@@ -66,6 +66,10 @@ class EightBit(Register):
 class SixteenBit(Register):
     def __init__(self):
         super().__init__(16)
+        super().step()
+
+    def __str__(self):
+        return str(self.res)
 
 
 class Memory(gate.Device):

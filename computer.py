@@ -8,53 +8,97 @@ import peripheral
 class CPU(gate.Device):
     def __init__(self):
         # inputs
-        self.instruction = []    # 16 bits, the binary instruction
-        self.input_M = [0]*16    # value of M[A], 16 bits (coming from RAM)
-        self.reset = 0           # a "button" to reset the computer
+        self.instruction = []
+        self.input_M = []
+        self.reset = 0
 
         # outputs
-        self.write = 0           # if write enable bit is set ...
-        self.output_M = [0]*16   # these 16 bits will be written (into RAM)...
-        self.address_M = [0]*15  # at this 15 bit address...
-
-        self.output_PC = []      # address of next instruction to be executed (goes into PC)
+        self.output_M = []
+        self.address_M = []
+        self.output_write_bit = 0
+        self.output_PC = []
 
         # registers
-        self.A = memory.Register(16)
-        self.D = memory.Register(16)
+        self.A = memory.SixteenBit()
+        self.D = memory.SixteenBit()
         self.PC = cu.ProgramCounter()
 
         # components
-        self.mux0 = gate.Multiplexer2()
-        self.mux1 = gate.Multiplexer2()
+        self.mux_am = gate.Multiplexer2()
+        self.mux_ac = gate.Multiplexer2()
 
-        self.alu = alu.ALU()
-        self.decoder = cu.InstructionDecoder()
-        self.seq = cu.SequenceGenerator()
+        self.ALU = alu.ALU()
+
+        self.jump_and = [gate.And() for _ in range(5)]
+        self.jump_or = [gate.Or() for _ in range(3)]
+
+        self.is_pos_or = gate.Or()
+        self.is_pos_not = gate.Not()
+        self.inc_not = gate.Not()
 
     def _wiring(self):
-        decoded = self.decoder(self.instruction)
+        address_compute_bit = self.instruction[0]
 
-        am = self.mux0(self.A.res, self.input_M, decoded.AM)
-        z, is_zero, is_negative = self.alu(am, self.D.res, decoded.alu_flags)
+        # todo: remove if-else branch
+        if address_compute_bit == 0:
+            self.A(self.instruction, 1)
+            pc = self.PC(inc_bit=1, write_bit=0, new_address=self.A.res, reset=0)
+            return 0, [0]*16, [0]*16, pc
+        else:
+            am_bit = self.instruction[3]
+            alu_bits = self.instruction[4:10]
+            dest_bits = self.instruction[10:13]
+            jump_bits = self.instruction[13:16]
 
-        next_instruction_address = self.PC(self.A.res, decoded.inc_bit, decoded.write_bit, self.reset)
-        self.output_PC = next_instruction_address
+            xs = self.D.res
+            ys = self.mux_am(self.A.res, self.input_M, am_bit)
+
+            alu_flag = alu.AluFlag(*alu_bits)
+            res, is_zero, is_negative = self.ALU(xs, ys, alu_flag)
+            is_pos = self.is_pos_not(self.is_pos_or(is_negative, is_zero))
+
+            self.A(res, dest_bits[0])
+            self.D(res, dest_bits[1])
+            self.output_write_bit = dest_bits[2]
+            self.output_M = res
+
+            first_bit = self.jump_and[0](is_negative, jump_bits[0])
+            second_bit = self.jump_and[1](is_zero, jump_bits[1])
+            third_bit = self.jump_and[2](is_pos, jump_bits[2])
+
+            temp1 = self.jump_or[0](first_bit, second_bit)
+            cond_jump = self.jump_or[1](temp1, third_bit)
+
+            temp2 = self.jump_and[3](jump_bits[0], jump_bits[1])
+            uncond_jump = self.jump_and[3](temp2, jump_bits[2])
+            jump_res = self.jump_or[2](cond_jump, uncond_jump)
+            inc_bit = self.inc_not(jump_res)
+
+            pc = self.PC(inc_bit=inc_bit, write_bit=jump_res, new_address=self.A.res, reset=self.reset)
+            return dest_bits[2], res, self.A.res, pc
 
     def step(self):
-        pass
+        write_bit, res, address, pc = self._wiring()
+        self.output_write_bit = write_bit
+        self.output_M = res
+        self.address_M = address
+        self.output_PC = pc
 
     def __call__(self, instruction, mem, reset):
-        return NotImplemented
+        self.instruction = instruction
+        self.input_M = mem
+        self.reset = reset
+        self.step()
+        return self.output_write_bit, self.output_M, self.address_M, self.output_PC
 
 
 class Computer(gate.Device):
-    def __init__(self):
+    def __init__(self, program):
         self.reset = 0
-        self.pc = 0
-        self.mem_val = [0]*16
+        self.pc_bus = [0] * 16
+        self.memory_bus = [0] * 16
 
-        self.ROM = memory.ROM([[0]*16]*2**15)
+        self.ROM = memory.ROM(program)
         self.RAM = memory.RAM()
         self.CPU = CPU()
 
@@ -62,10 +106,17 @@ class Computer(gate.Device):
         self.screen = peripheral.Screen(self.RAM)
 
     def _wiring(self):
-        instruction = self.ROM(self.pc)
-        write, data, address, pc = self.CPU(instruction, self.mem_val, self.reset)
-        self.RAM(address, data, write)
-        self.pc = pc
+        instruction = self.ROM(self.pc_bus)
+        # todo: wire memory in a better way ...
+        mem = self.RAM(self.CPU.A.res, [0]*16, 0)
+        write_bit, data, address, pc = self.CPU(instruction, mem, self.reset)
+        self.RAM(address, data, write_bit)
+        self.pc_bus = pc
 
     def step(self):
         self._wiring()
+
+    def __call__(self):
+        self.step()
+        next_instruction = self.ROM(self.pc_bus)
+        return self.pc_bus, next_instruction
