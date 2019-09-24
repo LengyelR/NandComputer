@@ -25,54 +25,39 @@ class CPU(gate.Device):
 
         # components
         self.mux_am = gate.Multiplexer2()
-        self.mux_ac = gate.Multiplexer2()
 
         self.ac_not = gate.Not()
-        self.ac_and = [gate.And() for _ in range(4)]
 
         self.ALU = alu.ALU()
+        self.jump_control = cu.JumpControl()
+        self.write_control = cu.WriteControl()
 
-        self.jump_and = [gate.And() for _ in range(5)]
-        self.jump_or = [gate.Or() for _ in range(3)]
-
-        self.is_pos_or = gate.Or()
-        self.is_pos_not = gate.Not()
-        self.inc_not = gate.Not()
-
-    def _wiring(self):
+    def _decode(self):
         ac_bit = self.instruction[0]
-        self.A(self.instruction, self.ac_not(ac_bit))
-
         am_bit = self.instruction[3]
         alu_bits = self.instruction[4:10]
         dest_bits = self.instruction[10:13]
         jump_bits = self.instruction[13:16]
+        return ac_bit, am_bit, alu_bits, dest_bits, jump_bits
+
+    def _wiring(self):
+        ac_bit, am_bit, alu_bits, dest_bits, jump_bits = self._decode()
+
+        self.A(self.instruction, self.ac_not(ac_bit))
 
         xs = self.D.res
         ys = self.mux_am(self.A.res, self.input_M, am_bit)
 
         alu_flag = alu.AluFlag(*alu_bits)
         res, is_zero, is_negative = self.ALU(xs, ys, alu_flag)
-        is_pos = self.is_pos_not(self.is_pos_or(is_negative, is_zero))
 
-        self.A(res, self.ac_and[0](dest_bits[0], ac_bit))
-        self.D(res, self.ac_and[1](dest_bits[1], ac_bit))
-        self.output_write_bit = self.ac_and[2](dest_bits[2], ac_bit)
+        write_a, write_d, write_m = self.write_control(dest_bits, ac_bit)
+        self.A(res, write_a)
+        self.D(res, write_d)
+        self.output_write_bit = write_m
         self.output_M = res
 
-        first_bit = self.jump_and[0](is_negative, jump_bits[0])
-        second_bit = self.jump_and[1](is_zero, jump_bits[1])
-        third_bit = self.jump_and[2](is_pos, jump_bits[2])
-
-        temp1 = self.jump_or[0](first_bit, second_bit)
-        cond_jump = self.jump_or[1](temp1, third_bit)
-
-        temp2 = self.jump_and[3](jump_bits[0], jump_bits[1])
-        uncond_jump = self.jump_and[3](temp2, jump_bits[2])
-        jump_res = self.jump_or[2](cond_jump, uncond_jump)
-
-        jump_ac_flow = self.ac_and[3](jump_res, ac_bit)
-        inc_bit = self.inc_not(jump_ac_flow)
+        inc_bit, jump_ac_flow = self.jump_control(is_zero, is_negative, jump_bits, ac_bit)
 
         pc = self.PC(inc_bit=inc_bit, write_bit=jump_ac_flow, new_address=self.A.res, reset=self.reset)
         return dest_bits[2], res, self.A.res, pc
