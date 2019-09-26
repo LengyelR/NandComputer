@@ -4,6 +4,25 @@ import ops
 
 AluFlag = namedtuple('alu_flag', ['zx', 'nx', 'zy', 'ny', 'f', 'no'])
 
+zero_op      = (1, 0, 1, 0, 1, 0)
+one_op       = (1, 1, 1, 1, 1, 1)
+minus1_op    = (1, 1, 1, 0, 1, 0)
+x_op         = (0, 0, 1, 1, 0, 0)
+not_x_op     = (0, 0, 1, 1, 0, 1)
+minus_x_op   = (0, 0, 1, 1, 1, 1)
+y_op         = (1, 1, 0, 0, 0, 0)
+not_y_op     = (1, 1, 0, 0, 0, 1)
+minus_y_op   = (1, 1, 0, 0, 1, 1)
+x_plus_1_op  = (0, 1, 1, 1, 1, 1)
+y_plus_1_op  = (1, 1, 0, 1, 1, 1)
+x_minus_1_op = (0, 0, 1, 1, 1, 0)
+y_minus_1_op = (1, 1, 0, 0, 1, 0)
+x_plus_y_op  = (0, 0, 0, 0, 1, 0)
+x_minus_y_op = (0, 1, 0, 0, 1, 1)
+y_minus_x_op = (0, 0, 0, 1, 1, 1)
+x_and_y_op   = (0, 0, 0, 0, 0, 0)
+x_or_y_op    = (0, 1, 0, 1, 0, 1)
+
 
 class ALU(gate.Device):
     def __init__(self):
@@ -32,10 +51,10 @@ class ALU(gate.Device):
         self.mux2_negate = gate.Multiplexer2()
 
     def _wiring(self):
-        xs = self.mux2_zx(self.xs, [0]*16, self.flags.zx)
+        xs = self.mux2_zx(self.xs, [0] * 16, self.flags.zx)
         xs = self.mux2_nx(xs, self.inverters[0](xs), self.flags.nx)
 
-        ys = self.mux2_zy(self.ys, [0]*16, self.flags.zy)
+        ys = self.mux2_zy(self.ys, [0] * 16, self.flags.zy)
         ys = self.mux2_ny(ys, self.inverters[1](ys), self.flags.ny)
 
         add_ = self.adder(xs, ys)
@@ -64,24 +83,24 @@ def test_alu():
     import board
     import utils
 
-    zero_flag      = AluFlag(1, 0, 1, 0, 1, 0)
-    one_flag       = AluFlag(1, 1, 1, 1, 1, 1)
-    minus1_flag    = AluFlag(1, 1, 1, 0, 1, 0)
-    x_flag         = AluFlag(0, 0, 1, 1, 0, 0)
-    not_x_flag     = AluFlag(0, 0, 1, 1, 0, 1)
-    minus_x_flag   = AluFlag(0, 0, 1, 1, 1, 1)
-    y_flag         = AluFlag(1, 1, 0, 0, 0, 0)
-    not_y_flag     = AluFlag(1, 1, 0, 0, 0, 1)
-    minus_y_flag   = AluFlag(1, 1, 0, 0, 1, 1)
-    x_plus_1_flag  = AluFlag(0, 1, 1, 1, 1, 1)
-    y_plus_1_flag  = AluFlag(1, 1, 0, 1, 1, 1)
-    x_minus_1_flag = AluFlag(0, 0, 1, 1, 1, 0)
-    y_minus_1_flag = AluFlag(1, 1, 0, 0, 1, 0)
-    x_plus_y_flag  = AluFlag(0, 0, 0, 0, 1, 0)
-    x_minus_y_flag = AluFlag(0, 1, 0, 0, 1, 1)
-    y_minus_x_flag = AluFlag(0, 0, 0, 1, 1, 1)
-    x_and_y_flag   = AluFlag(0, 0, 0, 0, 0, 0)
-    x_or_y_flag    = AluFlag(0, 1, 0, 1, 0, 1)
+    zero_flag = AluFlag(*zero_op)
+    one_flag = AluFlag(*one_op)
+    minus1_flag = AluFlag(*minus1_op)
+    x_flag = AluFlag(*x_op)
+    not_x_flag = AluFlag(*not_x_op)
+    minus_x_flag = AluFlag(*minus_x_op)
+    y_flag = AluFlag(*y_op)
+    not_y_flag = AluFlag(*not_y_op)
+    minus_y_flag = AluFlag(*minus_y_op)
+    x_plus_1_flag = AluFlag(*x_plus_1_op)
+    y_plus_1_flag = AluFlag(*y_plus_1_op)
+    x_minus_1_flag = AluFlag(*x_minus_1_op)
+    y_minus_1_flag = AluFlag(*y_minus_1_op)
+    x_plus_y_flag = AluFlag(*x_plus_y_op)
+    x_minus_y_flag = AluFlag(*x_minus_y_op)
+    y_minus_x_flag = AluFlag(*y_minus_x_op)
+    x_and_y_flag = AluFlag(*x_and_y_op)
+    x_or_y_flag = AluFlag(*x_or_y_op)
 
     c = board.Circuit(4, ALU)
 
@@ -94,7 +113,7 @@ def test_alu():
         assert is_zero == (1 if r == 0 else 0)
         assert is_negative == (1 if r < 0 else 0)
 
-    data = [(67, 49), (32, 75), (5123, 7546), (2**14-17, 2**13+6), (0, 0), (0, 1), (1, 1)]
+    data = [(67, 49), (32, 75), (5123, 7546), (2 ** 14 - 17, 2 ** 13 + 6), (0, 0), (0, 1), (1, 1)]
 
     for x, y in data:
         _assert(0, zero_flag)
@@ -105,16 +124,16 @@ def test_alu():
         _assert(y, y_flag)
         _assert(-y, minus_y_flag)
         _assert(-x, minus_x_flag)
-        _assert(-x-1, not_x_flag)
-        _assert(-y-1, not_y_flag)
+        _assert(-x - 1, not_x_flag)
+        _assert(-y - 1, not_y_flag)
 
-        _assert(x+1, x_plus_1_flag)
-        _assert(y+1, y_plus_1_flag)
-        _assert(x-1, x_minus_1_flag)
-        _assert(y-1, y_minus_1_flag)
-        _assert(x+y, x_plus_y_flag)
-        _assert(x-y, x_minus_y_flag)
-        _assert(y-x, y_minus_x_flag)
+        _assert(x + 1, x_plus_1_flag)
+        _assert(y + 1, y_plus_1_flag)
+        _assert(x - 1, x_minus_1_flag)
+        _assert(y - 1, y_minus_1_flag)
+        _assert(x + y, x_plus_y_flag)
+        _assert(x - y, x_minus_y_flag)
+        _assert(y - x, y_minus_x_flag)
 
         _assert(x & y, x_and_y_flag)
         _assert(x | y, x_or_y_flag)
