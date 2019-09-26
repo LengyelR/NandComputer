@@ -1,4 +1,4 @@
-import gate
+from nandcomp import gate
 
 
 class HalfAdd(gate.Device):
@@ -179,7 +179,7 @@ class IsZero(gate.SimpleGate1):
 
 
 def main():
-    import board
+    from nandcomp import board
     import time
 
     ci = board.Circuit(4, FullAdd16Bit)

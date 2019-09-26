@@ -1,6 +1,6 @@
 from collections import namedtuple
-import gate
-import ops
+from nandcomp import gate
+from nandcomp import ops
 
 AluFlag = namedtuple('alu_flag', ['zx', 'nx', 'zy', 'ny', 'f', 'no'])
 
@@ -80,8 +80,8 @@ class ALU(gate.Device):
 
 
 def test_alu():
-    import board
-    import utils
+    from nandcomp import board
+    from nandcomp import utils
 
     zero_flag = AluFlag(*zero_op)
     one_flag = AluFlag(*one_op)

@@ -1,4 +1,4 @@
-import gate
+from nandcomp import gate
 
 
 class SrLatchNor(gate.Device):

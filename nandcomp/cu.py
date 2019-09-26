@@ -1,6 +1,6 @@
-import gate
-import ops
-import memory
+from nandcomp import gate
+from nandcomp import ops
+from nandcomp import memory
 
 
 class SequenceGenerator(gate.Device):
@@ -138,8 +138,8 @@ class WriteControl(gate.Device):
 
 
 if __name__ == '__main__':
-    import board
     import time
+    from nandcomp import board
 
     c = board.Circuit(32, SequenceGenerator)
     c.power_on(show_step=True)

@@ -308,7 +308,7 @@ class FeedingLoop(Device):
 
 
 if __name__ == '__main__':
-    import board
+    from nandcomp import board
     import time
 
     f = lambda: time.sleep(0.25)

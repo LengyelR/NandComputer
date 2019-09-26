@@ -1,8 +1,8 @@
-import gate
-import alu
-import cu
-import memory
-import peripheral
+from nandcomp import alu
+from nandcomp import gate
+from nandcomp import cu
+from nandcomp import memory
+from nandcomp import peripheral
 
 
 class CPU(gate.Device):
@@ -107,7 +107,7 @@ class Computer(gate.Device):
 
 
 def program_test():
-    import utils
+    from nandcomp import utils
 
     def show_memory():
         for address in range(16, 20):
@@ -125,7 +125,7 @@ def program_test():
     ]
     sum100 = [
         0b0000000000010000,  # 0   @i        --> A = 16
-        0b1110111111001000,  # 1   M = 1     --> M[16] = 1    --> var i = 1
+        0b1111111111001000,  # 1   M = 1     --> M[16] = 1    --> var i = 1
         0b0000000000010001,  # 2   @sum      --> A = 17
         0b1110101010001000,  # 3   M = 0     --> M[17] = 0    --> var sum = 0
         0b0000000000010000,  # 4   @i        --> A = 16

@@ -1,7 +1,7 @@
-import gate
-import board
-import latch
-import utils
+from nandcomp import gate
+from nandcomp import board
+from nandcomp import latch
+from nandcomp import utils
 
 
 class GatedLatch(gate.Device):
@@ -180,10 +180,10 @@ def flip_flop_test():
             time.sleep(0.25)
             assert circuit.device.res == 0
 
-    toggling_bit_while_set_is_off()
     toggling_bit_while_set_is_on()
-    toggling_set_while_bit_is_off()
+    toggling_bit_while_set_is_off()
     toggling_set_while_bit_is_on()
+    toggling_set_while_bit_is_off()
 
     circuit.power_off()
 
