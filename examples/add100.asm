@@ -16,7 +16,7 @@ LOOP:
     STR A, $sum
     ADD M, D, M
 
-    INC $i
+    INC $i, $i
 
     JMP $LOOP
 

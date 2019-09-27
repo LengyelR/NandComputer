@@ -131,11 +131,15 @@ class Parser:
 
     def _unary_op(self, args, op1, op2):
         # symbol
-        if args[0][0] == '$':
-            var_address = self.symbols[args[0]]
+        if args[1][0] == '$':
+            var_address = self.symbols[args[1]]
             set_a = utils.to_machine_number(var_address)
 
-            dst = _encode_destination('M')
+            if args[0] == args[1]:
+                dst = _encode_destination('M')
+            else:
+                dst = _encode_destination(args[0])
+
             am, operation = _select_register('M', op1, op2)
             res = [1, 1, 1] + am + operation + dst + [0, 0, 0]
             return [set_a, res]
@@ -143,7 +147,7 @@ class Parser:
         # register
         else:
             dst = _encode_destination(args[0])
-            am, operation = _select_register(args[0], op1, op2)
+            am, operation = _select_register(args[1], op1, op2)
             res = [1, 1, 1] + am + operation + dst + [0, 0, 0]
             return [res]
 
