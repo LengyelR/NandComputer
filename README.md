@@ -50,6 +50,13 @@ Looping through them is allowed, because if we unroll the loops it should abide 
 
 Technically, anything can be allowed, as long as it statically compiles to simple function composition. (So no branching, goto statements, etc.)
 
+## Synchronisation
+
+The cpu is "asynchronous", as there is no central clock per se, 
+but there is a strict order in which the operations are executed. 
+Because each operation waits until the previous one finishes, it's not really an async cpu design, 
+just simply clockless.
+
 ## References
 
 * The Elements of Computing Systems: Building a Modern Computer from First Principles
