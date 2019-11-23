@@ -107,36 +107,6 @@ class JumpControl(gate.Device):
         return self.inc_bit, self.jump
 
 
-class WriteControl(gate.Device):
-    def __init__(self):
-        self.destination_bits = [0]*3
-        self.ac_bit = 0
-
-        self.write_A = 0
-        self.write_D = 0
-        self.write_M = 0
-
-        self.and_ = [gate.And() for _ in range(3)]
-
-    def _wiring(self):
-        a = self.and_[0](self.destination_bits[0], self.ac_bit)
-        d = self.and_[1](self.destination_bits[1], self.ac_bit)
-        m = self.and_[2](self.destination_bits[2], self.ac_bit)
-        return a, d, m
-
-    def step(self):
-        a, d, m = self._wiring()
-        self.write_A = a
-        self.write_D = d
-        self.write_M = m
-
-    def __call__(self, destination_bits, ac_bit):
-        self.destination_bits = destination_bits
-        self.ac_bit = ac_bit
-        self.step()
-        return self.write_A, self.write_D, self.write_M
-
-
 if __name__ == '__main__':
     import time
     from nandcomp import board

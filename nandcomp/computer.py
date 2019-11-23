@@ -27,10 +27,10 @@ class CPU(gate.Device):
         self.mux_am = gate.Multiplexer2()
 
         self.ac_not = gate.Not()
+        self.ad_and = gate.And()
 
         self.ALU = alu.ALU()
         self.jump_control = cu.JumpControl()
-        self.write_control = cu.WriteControl()
 
     def _decode(self):
         ac_bit = self.instruction[0]
@@ -42,6 +42,7 @@ class CPU(gate.Device):
 
     def _wiring(self):
         ac_bit, am_bit, alu_bits, dest_bits, jump_bits = self._decode()
+        ad_bit = dest_bits[1]
 
         self.A(self.instruction, self.ac_not(ac_bit))
 
@@ -51,11 +52,8 @@ class CPU(gate.Device):
         alu_flag = alu.AluFlag(*alu_bits)
         res, is_zero, is_negative = self.ALU(xs, ys, alu_flag)
 
-        write_a, write_d, write_m = self.write_control(dest_bits, ac_bit)
-        self.A(res, write_a)
+        write_d = self.ad_and(ad_bit, ac_bit)
         self.D(res, write_d)
-        self.output_write_bit = write_m
-        self.output_M = res
 
         inc_bit, jump_ac_flow = self.jump_control(is_zero, is_negative, jump_bits, ac_bit)
 
