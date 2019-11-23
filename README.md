@@ -9,6 +9,16 @@ The only operation used throughout the architecture is this:
 
 Everything else is calculated by a combination of these nested nand operations.
 
+## Assembly
+
+The computer has its own, custom assembly language. A simple example: 
+
+```asm
+STR A, 2 
+MOV D, A
+ADD D, D, A
+DEC D, D
+```
 
 ## Wiring
 
