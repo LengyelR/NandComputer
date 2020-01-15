@@ -19,6 +19,18 @@ MOV D, A
 ADD D, D, A
 DEC D, D
 ```
+The created binary will be:
+
+```
+0b0000000000000010
+0b1110110000010000
+0b1110000010010000
+0b1110001110010000
+0b0000000000000000
+0b1110001100001000
+```
+Which can be executed by the cpu.
+
 
 ## Wiring
 
